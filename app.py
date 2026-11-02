@@ -6,7 +6,7 @@ POULE_FILE = "poule_historie.txt"
 
 STANDAARD_DATABASE = {
     "plachy,dedek": "10;7;3;❤️ VRIENDJES (HOGE GUNFACTOR);01 november 2026: Plachy was al door en liet Dedek bewust met 3-0 winnen in wedstrijd 6.",
-    "darin,plachy": "8;4;4;⚡ TACTISCHE ENERGIEBESPARING;01 november 2026: Plachy spaart 100% zijn energie voor de finale als de poulepot 'dood' is. Darin wint dan makkelijk met 3-0.",
+    "darin,plachy": "8;4;4;⚡ TACTISCHE ENERGIEBESPARING;01 november 2026: Plachy spaart 100% zijn energy voor de finale als de poulepot 'dood' is. Darin wint dan makkelijk met 3-0.",
     "plachy,briza": "14;10;4;⚖️ PURE BUSINESS (GUNNEN NIKS);01 november 2026: Plachy leidt ruim (72%), gunt Briza niks. Kan wel door vermoeidheid 1-2 achterkomen, maar wint de 5e set (3-2) op ervaring.",
     "regner,hofman": "12;8;4;❤️ VRIENDJES (HOGE GUNFACTOR);01 november 2026: Hofman was al uitgeschakeld en Regner moest winnen voor de finale. Hofman liet Regner direct met 3-0 winnen zonder set-gegok.",
     "stolfa,regner": "15;5;10;❌ GEEN VRIENDJES (PURE RIVALITEIT);01 november 2026: Regner gunt Stolfa absoluut niks. Vocht tot de laatste set om hem uit te schakelen.",
@@ -143,7 +143,8 @@ with tab1:
                         
                     gun_database[sleutel] = match
                     herschrijf_database(gun_database)
-                    st.success("✅ Succesvol geüpdatet! Ververs de pagina om de nieuwe stats te zien.")
+                    st.success("✅ Succesvol geüpdatet!")
+                    st.rerun()
                     
         else:
             st.error(f"Matchup tussen '{naam1.capitalize()}' en '{naam2.capitalize()}' bestaat nog niet.")
@@ -153,28 +154,35 @@ with tab1:
                 w1 = st.number_input(f"Winst {naam1.capitalize()}:", min_value=0, value=0)
                 w2 = st.number_input(f"Winst {naam2.capitalize()}:", min_value=0, value=0)
                 relatie_keuze = st.selectbox("Kies relatie:", ["❤️ VRIENDJES (HOGE GUNFACTOR)", "❌ GEEN VRIENDJES (PURE RIVALITEIT)", "⚡ TACTISCHE ENERGIEBESPARING", "⚖️ PURE BUSINESS (GUNNEN NIKS)"])
-                n_datum = st.text_input("Datum/Wedstrijd (bijv. 02-11-2026 wedstrijd 5):")
-                n_wat = st.text_input("Wat was de situatie?:")
+                u_datum = st.text_input("Welke datum/wedstrijd? (bijv. 02-11-2026 wedstrijd 1)")
+                u_wat = st.text_input("Situatieomschrijving/Bewijs:")
                 
-                submit_new = st.form_submit_button("Spelers Opslaan")
+                submit_new = st.form_submit_button("Nieuwe Matchup Aanmaken")
                 if submit_new:
-                    gun_database[(naam1, naam2)] = {
-                        "totaal": totaal, "winst_p1": w1, "winst_p2": w2, "relatie": relatie_keuze, "bewijs": f"{n_datum}: {n_wat}"
-                    }
-                    herschrijf_database(gun_database)
-                    st.success("✅ Nieuwe spelers succesvol opgeslagen op je harde schijf!")
+                    if w1 + w2 > totaal:
+                        st.error("Fout: Winst speler 1 + winst speler 2 kan niet groter zijn dan het totaal gespeelde potten!")
+                    else:
+                        gun_database[(naam1, naam2)] = {
+                            "totaal": totaal, "winst_p1": w1, "winst_p2": w2,
+                            "relatie": relatie_keuze, "bewijs": f"{u_datum}: {u_wat}" if u_datum or u_wat else "Geen opmerkingen."
+                        }
+                        herschrijf_database(gun_database)
+                        st.success(f"✅ Matchup tussen {naam1.capitalize()} en {naam2.capitalize()} succesvol aangemaakt!")
+                        st.rerun()
 
 with tab2:
-    st.header("Volledige 4-mans Poule Opslaan")
-    p_datum = st.text_input("Datum/Tijdstip poule (bijv. 02-11-2026 Avond):", key="p_det")
-    p1 = st.text_input("Naam Speler 1:", key="p1")
-    p2 = st.text_input("Naam Speler 2:", key="p2")
-    p3 = st.text_input("Naam Speler 3:", key="p3")
-    p4 = st.text_input("Naam Speler 4:", key="p4")
-    
-    if st.button("Poule Samenstelling Opslaan"):
-        if p_datum and p1 and p2 and p3 and p4:
-            sla_poule_op(p_datum, p1, p2, p3, p4)
-            st.success(f"✅ Poule van {p_datum} succesvol opgeslagen!")
-        else:
-            st.error("Vul alle velden in om de poule op te slaan.")
+    st.header("Nieuwe Poule-samenstelling Opslaan")
+    with st.form("poule_form"):
+        p_datum = st.text_input("Datum van poule (bijv. 02 november 2026):")
+        p_s1 = st.text_input("Speler 1:")
+        p_s2 = st.text_input("Speler 2:")
+        p_s3 = st.text_input("Speler 3:")
+        p_s4 = st.text_input("Speler 4:")
+        
+        submit_poule = st.form_submit_button("Poule Opslaan")
+        if submit_poule:
+            if p_datum and p_s1 and p_s2 and p_s3 and p_s4:
+                sla_poule_op(p_datum, p_s1, p_s2, p_s3, p_s4)
+                st.success(f"✅ Poule voor {p_datum} succesvol opgeslagen in historie!")
+            else:
+                st.error("Vul apathisch alle velden in (datum + 4 spelers) om de poule op te slaan.")
