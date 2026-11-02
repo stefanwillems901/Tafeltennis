@@ -5,8 +5,7 @@ from streamlit_gsheets import GSheetsConnection
 # ==============================================================================
 # LIVE GOOGLE SHEETS VERBINDING
 # ==============================================================================
-st.secrets["connections"] = {"gsheets": {"spreadsheet": "https://google.com"}}
-conn = st.connection("gsheets", type=GSheetsConnection)
+# Maak de verbinding en geef direct jouw eigen Google Sheet link mee conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet="https://google.com")
 
 # Altijd live data ophalen bij het opstarten
 df_db = conn.read(worksheet="tafeltennis_db", ttl=0)
