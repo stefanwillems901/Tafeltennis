@@ -5,6 +5,7 @@ from streamlit_gsheets import GSheetsConnection
 # ==============================================================================
 # LIVE GOOGLE SHEETS VERBINDING
 # ==============================================================================
+st.secrets["connections"] = {"gsheets": {"spreadsheet": "https://google.com"}}
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # Altijd live data ophalen bij het opstarten
