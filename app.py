@@ -1,79 +1,57 @@
 import streamlit as st
-import os
+import pandas as pd
+from streamlit_gsheets import GSheetsConnection
 
-DB_FILE = "tafeltennis_db.txt"
-POULE_FILE = "poule_historie.txt"
+# ==============================================================================
+# LIVE GOOGLE SHEETS VERBINDING
+# ==============================================================================
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-STANDAARD_DATABASE = {
-    "plachy,dedek": "10;7;3;❤️ VRIENDJES (HOGE GUNFACTOR);01 november 2026: Plachy was al door en liet Dedek bewust met 3-0 winnen in wedstrijd 6.",
-    "darin,plachy": "8;4;4;⚡ TACTISCHE ENERGIEBESPARING;01 november 2026: Plachy spaart 100% zijn energy voor de finale als de poulepot 'dood' is. Darin wint dan makkelijk met 3-0.",
-    "plachy,briza": "14;10;4;⚖️ PURE BUSINESS (GUNNEN NIKS);01 november 2026: Plachy leidt ruim (72%), gunt Briza niks. Kan wel door vermoeidheid 1-2 achterkomen, maar wint de 5e set (3-2) op ervaring.",
-    "regner,hofman": "12;8;4;❤️ VRIENDJES (HOGE GUNFACTOR);01 november 2026: Hofman was al uitgeschakeld en Regner moest winnen voor de finale. Hofman liet Regner direct met 3-0 winnen zonder set-gegok.",
-    "stolfa,regner": "15;5;10;❌ GEEN VRIENDJES (PURE RIVALITEIT);01 november 2026: Regner gunt Stolfa absoluut niks. Vocht tot de laatste set om hem uit te schakelen.",
-    "chmela,kern": "6;6;0;📉 TRAININGSMAATJES (DOMINANTIE);02 november 2026: Chmela domineert zwaar. Snelle 3-0 overwinning. Kern verliest supersnel zijn moed en motivatie.",
-    "szotek,chalupa": "9;5;4;❌ GEEN VRIENDJES (BURENRUZIE);02 november 2026: Pure burenruzie op de ranglijst. Geen vriendschap, vechten altijd tot de allerlaatste set, ongeacht de poulestand.",
-    "byrtus,skacelik": "1;0;1;❤️ VRIENDJES (HOGE GUNFACTOR);02-11-2026: wedstrijd 5 won Skacelik 3-1"
-}
+# Altijd live data ophalen bij het opstarten
+df_db = conn.read(worksheet="tafeltennis_db", ttl=0)
+df_historie = conn.read(worksheet="poule_historie", ttl=0)
 
-def laad_database():
-    db = {}
-    if not os.path.exists(DB_FILE):
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            for k, v in STANDAARD_DATABASE.items():
-                f.write(f"{k}|{v}\n")
-    
-    with open(DB_FILE, "r", encoding="utf-8") as f:
-        for lijn in f:
-            if "|" in lijn:
-                sleutel, data = lijn.strip().split("|", 1)
-                p1, p2 = sleutel.split(",")
-                parts = data.split(";")
-                db[(p1, p2)] = {
-                    "totaal": int(parts[0]), "winst_p1": int(parts[1]), "winst_p2": int(parts[2]),
-                    "relatie": parts[3], "bewijs": parts[4]
-                }
-    return db
+# Standaard data back-up voor als de Google Sheet helemaal leeg is
+STANDAARD_DATABASE = [
+    {"Speler 1": "plachy", "Speler 2": "dedek", "totaal": 10, "winst_p1": 7, "winst_p2": 3, "Status": "❤️ VRIENDJES (HOGE GUNFACTOR)", "bewijs": "01 november 2026: Plachy was al door en liet Dedek bewust met 3-0 winnen in wedstrijd 6."},
+    {"Speler 1": "darin", "Speler 2": "plachy", "totaal": 8, "winst_p1": 4, "winst_p2": 4, "Status": "⚡ TACTISCHE ENERGIEBESPARING", "bewijs": "01 november 2026: Plachy spaart 100% zijn energie voor de finale als de poulepot 'dood' is. Darin wint dan makkelijk met 3-0."},
+    {"Speler 1": "plachy", "Speler 2": "briza", "totaal": 14, "winst_p1": 10, "winst_p2": 4, "Status": "⚖️ PURE BUSINESS (GUNNEN NIKS)", "bewijs": "01 november 2026: Plachy leidt ruim (72%), gunt Briza niks. Kan wel door vermoeidheid 1-2 achterkomen, maar wint de 5e set (3-2) op ervaring."},
+    {"Speler 1": "regner", "Speler 2": "hofman", "totaal": 12, "winst_p1": 8, "winst_p2": 4, "Status": "❤️ VRIENDJES (HOGE GUNFACTOR)", "bewijs": "01 november 2026: Hofman was al uitgeschakeld en Regner moest winnen voor de finale. Hofman liet Regner direct met 3-0 winnen zonder set-gegok."},
+    {"Speler 1": "stolfa", "Speler 2": "regner", "totaal": 15, "winst_p1": 5, "winst_p2": 10, "Status": "❌ GEEN VRIENDJES (PURE RIVALITEIT)", "bewijs": "01 november 2026: Regner gunt Stolfa absoluut niks. Vocht tot de laatste set om hem uit te schakelen."},
+    {"Speler 1": "chmela", "Speler 2": "kern", "totaal": 6, "winst_p1": 6, "winst_p2": 0, "Status": "📉 TRAININGSMAATJES (DOMINANTIE)", "bewijs": "02 november 2026: Chmela domineert zwaar. Snelle 3-0 overwinning. Kern verliest supersnel his moed en motivatie."},
+    {"Speler 1": "szotek", "Speler 2": "chalupa", "totaal": 9, "winst_p1": 5, "winst_p2": 4, "Status": "❌ GEEN VRIENDJES (BURENRUZIE)", "bewijs": "02 november 2026: Pure burenruzie op de ranglijst. Geen vriendschap, vechten altijd tot de allerlaatste set, ongeacht de poulestand."},
+    {"Speler 1": "byrtus", "Speler 2": "skacelik", "totaal": 1, "winst_p1": 0, "winst_p2": 1, "Status": "❤️ VRIENDJES (HOGE GUNFACTOR)", "bewijs": "02-11-2026: wedstrijd 5 won Skacelik 3-1"}
+]
 
-def herschrijf_database(db):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        for (p1, p2), data in db.items():
-            f.write(f"{p1},{p2}|{data['totaal']};{data['winst_p1']};{data['winst_p2']};{data['relatie']};{data['bewijs']}\n")
+if df_db.empty or len(df_db) <= 1:
+    df_db = pd.DataFrame(STANDAARD_DATABASE)
+    conn.update(worksheet="tafeltennis_db", data=df_db)
 
-def sla_poule_op(datum, speler1, speler2, speler3, speler4):
-    poule_leden = sorted([speler1.lower(), speler2.lower(), speler3.lower(), speler4.lower()])
-    poule_str = ",".join(poule_leden)
-    with open(POULE_FILE, "a", encoding="utf-8") as f:
-        f.write(f"{datum}|{poule_str}\n")
-
-def check_poule_historie(s1, s2):
-    if not os.path.exists(POULE_FILE):
+def check_poule_historie_sheets(s1, s2):
+    df_hist_live = conn.read(worksheet="poule_historie", ttl=0)
+    if df_hist_live.empty:
         return []
     historie = []
-    with open(POULE_FILE, "r", encoding="utf-8") as f:
-        for lijn in f:
-            if "|" in lijn:
-                datum, leden_str = lijn.strip().split("|")
-                leden = leden_str.split(",")
-                if s1.lower() in leden and s2.lower() in leden:
-                    historie.append((datum, [l.capitalize() for l in leden]))
+    for _, rij in df_hist_live.iterrows():
+        if pd.isna(rij["Datum"]) or pd.isna(rij["Spelers"]):
+            continue
+        leden = [l.strip().lower() for l in str(rij["Spelers"]).split(",")]
+        if s1.lower() in leden and s2.lower() in leden:
+            historie.append((rij["Datum"], [l.capitalize() for l in leden]))
     return historie
 
 # ==============================================================================
-# STREAMLIT WEBSITE LAY-OUT
+# STREAMLIT LAY-OUT
 # ==============================================================================
-st.set_page_config(page_title="Liga Pro Gunfactor Checker", page_icon="🏓", layout="centered")
-
+st.set_page_config(page_title="Liga Pro Gunfactor Checker", page_icon="📓", layout="centered")
 st.title("🏓 Liga Pro - Gunfactor Checker V1")
 st.write("Analyseer live onderlinge relaties, gun-scenario's en poule-historie.")
 
-gun_database = laad_database()
-
-# TABS MAKEN VOOR OVERZICHTELIJKHEID
 tab1, tab2 = st.tabs(["📊 Matchup Checker", "📝 Poule Opslaan"])
 
+# TAB 1: MATCHUP CHECKER
 with tab1:
     st.header("Onderlinge Matchup Controleren")
-    
     col1, col2 = st.columns(2)
     with col1:
         naam1 = st.text_input("Speler 1:", key="s1").strip().lower()
@@ -81,36 +59,42 @@ with tab1:
         naam2 = st.text_input("Speler 2:", key="s2").strip().lower()
         
     if naam1 and naam2:
-        match, omgedraaid = None, False
-        sleutel = (naam1, naam2)
+        df_db = conn.read(worksheet="tafeltennis_db", ttl=0)
+        match_row = None
+        omgedraaid = False
         
-        if (naam1, naam2) in gun_database:
-            match = gun_database[(naam1, naam2)]
-        elif (naam2, naam1) in gun_database:
-            match = gun_database[(naam2, naam1)]
-            sleutel = (naam2, naam1)
-            omgedraaid = True
+        if not df_db.empty:
+            idx = df_db[(df_db["Speler 1"].str.lower() == naam1) & (df_db["Speler 2"].str.lower() == naam2)].index
+            if not idx.empty:
+                match_row = idx
+            else:
+                idx = df_db[(df_db["Speler 1"].str.lower() == naam2) & (df_db["Speler 2"].str.lower() == naam1)].index
+                if not idx.empty:
+                    match_row = idx
+                    omgedraaid = True
             
-        if match:
-            # Stats berekenen
-            winst_s1 = match["winst_p2"] if omgedraaid else match["winst_p1"]
-            winst_s2 = match["winst_p1"] if omgedraaid else match["winst_p2"]
-            pct_s1 = (winst_s1 / match["totaal"]) * 100 if match["totaal"] > 0 else 0
-            pct_s2 = (winst_s2 / match["totaal"]) * 100 if match["totaal"] > 0 else 0
+        if match_row is not None:
+            totaal = int(df_db.loc[match_row, "totaal"].values[0])
+            winst_p1 = int(df_db.loc[match_row, "winst_p1"].values[0])
+            winst_p2 = int(df_db.loc[match_row, "winst_p2"].values[0])
+            relatie = str(df_db.loc[match_row, "Status"].values[0])
+            bewijs = str(df_db.loc[match_row, "bewijs"].values[0]) if pd.notna(df_db.loc[match_row, "bewijs"].values[0]) else ""
+            
+            winst_s1 = winst_p2 if omgedraaid else winst_p1
+            winst_s2 = winst_p1 if omgedraaid else winst_p2
+            pct_s1 = (winst_s1 / totaal) * 100 if totaal > 0 else 0
+            pct_s2 = (winst_s2 / totaal) * 100 if totaal > 0 else 0
             
             st.subheader(f"Resultaat: {naam1.capitalize()} vs {naam2.capitalize()}")
-            
-            # Mooie statistieken kaarten
             c1, c2, c3 = st.columns(3)
-            c1.metric(label="Totaal Gespeeld", value=f"{match['totaal']}x")
+            c1.metric(label="Totaal Gespeeld", value=f"{totaal}x")
             c2.metric(label=f"Winst {naam1.capitalize()}", value=f"{winst_s1}x", delta=f"{pct_s1:.1f}%")
             c3.metric(label=f"Winst {naam2.capitalize()}", value=f"{winst_s2}x", delta=f"{pct_s2:.1f}%")
             
-            st.info(f"**🧠 Psychologische Relatie:** {match['relatie']}")
-            st.warning(f"**📝 Historisch Bewijs:** {match['bewijs']}")
+            st.info(f"**🧠 Psychologische Relatie:** {relatie}")
+            st.warning(f"**📝 Historisch Bewijs:** {bewijs}")
             
-            # Poule historie tonen
-            poule_matches = check_poule_historie(naam1, naam2)
+            poule_matches = check_poule_historie_sheets(naam1, naam2)
             if poule_matches:
                 st.subheader("📅 Eerder samen in de poule gezien:")
                 for dt, leden in poule_matches:
@@ -127,62 +111,45 @@ with tab1:
                 
                 submit_update = st.form_submit_button("Uitslag Toevoegen & Opslaan")
                 if submit_update:
-                    match["totaal"] += 1
-                    if wie_won.lower() == naam1:
-                        if omgedraaid: match["winst_p2"] += 1
-                        else: match["winst_p1"] += 1
+                    # Haal live de allernieuwste data op
+                    df_db_live = conn.read(worksheet="tafeltennis_db", ttl=0)
+                    
+                    # Zoek de rij opnieuw op in de live dataframe om index-fouten te voorkomen
+                    live_idx = df_db_live[(df_db_live["Speler 1"].str.lower() == naam1) & (df_db_live["Speler 2"].str.lower() == naam2)].index
+                    live_omgedraaid = False
+                    if live_idx.empty:
+                        live_idx = df_db_live[(df_db_live["Speler 1"].str.lower() == naam2) & (df_db_live["Speler 2"].str.lower() == naam1)].index
+                        live_omgedraaid = True
+                    
+                    if not live_idx.empty:
+                        row_idx = live_idx[0]
+                        huidig_totaal = int(df_db_live.at[row_idx, "totaal"])
+                        huidig_w1 = int(df_db_live.at[row_idx, "winst_p1"])
+                        huidig_w2 = int(df_db_live.at[row_idx, "winst_p2"])
+                        huidig_bewijs = str(df_db_live.at[row_idx, "bewijs"]) if pd.notna(df_db_live.at[row_idx, "bewijs"]) else ""
+                        
+                        df_db_live.at[row_idx, "totaal"] = huidig_totaal + 1
+                        if wie_won.lower() == naam1:
+                            if live_omgedraaid: df_db_live.at[row_idx, "winst_p2"] = huidig_w2 + 1
+                            else: df_db_live.at[row_idx, "winst_p1"] = huidig_w1 + 1
+                        else:
+                            if live_omgedraaid: df_db_live.at[row_idx, "winst_p1"] = huidig_w1 + 1
+                            else: df_db_live.at[row_idx, "winst_p2"] = huidig_w2 + 1
+                            
+                        if nieuwe_relatie != "Behoud huidige":
+                            df_db_live.at[row_idx, "Status"] = nieuwe_relatie
+                            
+                        if u_datum or u_wat:
+                            df_db_live.at[row_idx, "bewijs"] = f"{huidig_bewijs} | {u_datum}: {u_wat}".strip(" | ")
+                            
+                        conn.update(worksheet="tafeltennis_db", data=df_db_live)
+                        st.success("✅ Succesvol live opgeslagen in Google Sheets! Ververs de pagina om de nieuwe stats te zien.")
+                        st.balloons()
                     else:
-                        if omgedraaid: match["winst_p1"] += 1
-                        else: match["winst_p2"] += 1
-                        
-                    if nieuwe_relatie != "Behoud huidige":
-                        match["relatie"] = nieuwe_relatie
-                        
-                    if u_datum or u_wat:
-                        match["bewijs"] += f" | {u_datum}: {u_wat}"
-                        
-                    gun_database[sleutel] = match
-                    herschrijf_database(gun_database)
-                    st.success("✅ Succesvol geüpdatet!")
-                    st.rerun()
+                        st.error("Matchup kon live niet gevonden worden.")
                     
         else:
             st.error(f"Matchup tussen '{naam1.capitalize()}' en '{naam2.capitalize()}' bestaat nog niet.")
             st.subheader("➕ Voeg deze nieuwe spelerscombinatie toe")
             with st.form("new_matchup_form"):
-                totaal = st.number_input("Totaal gespeeld:", min_value=1, value=1)
-                w1 = st.number_input(f"Winst {naam1.capitalize()}:", min_value=0, value=0)
-                w2 = st.number_input(f"Winst {naam2.capitalize()}:", min_value=0, value=0)
-                relatie_keuze = st.selectbox("Kies relatie:", ["❤️ VRIENDJES (HOGE GUNFACTOR)", "❌ GEEN VRIENDJES (PURE RIVALITEIT)", "⚡ TACTISCHE ENERGIEBESPARING", "⚖️ PURE BUSINESS (GUNNEN NIKS)"])
-                u_datum = st.text_input("Welke datum/wedstrijd? (bijv. 02-11-2026 wedstrijd 1)")
-                u_wat = st.text_input("Situatieomschrijving/Bewijs:")
-                
-                submit_new = st.form_submit_button("Nieuwe Matchup Aanmaken")
-                if submit_new:
-                    if w1 + w2 > totaal:
-                        st.error("Fout: Winst speler 1 + winst speler 2 kan niet groter zijn dan het totaal gespeelde potten!")
-                    else:
-                        gun_database[(naam1, naam2)] = {
-                            "totaal": totaal, "winst_p1": w1, "winst_p2": w2,
-                            "relatie": relatie_keuze, "bewijs": f"{u_datum}: {u_wat}" if u_datum or u_wat else "Geen opmerkingen."
-                        }
-                        herschrijf_database(gun_database)
-                        st.success(f"✅ Matchup tussen {naam1.capitalize()} en {naam2.capitalize()} succesvol aangemaakt!")
-                        st.rerun()
-
-with tab2:
-    st.header("Nieuwe Poule-samenstelling Opslaan")
-    with st.form("poule_form"):
-        p_datum = st.text_input("Datum van poule (bijv. 02 november 2026):")
-        p_s1 = st.text_input("Speler 1:")
-        p_s2 = st.text_input("Speler 2:")
-        p_s3 = st.text_input("Speler 3:")
-        p_s4 = st.text_input("Speler 4:")
-        
-        submit_poule = st.form_submit_button("Poule Opslaan")
-        if submit_poule:
-            if p_datum and p_s1 and p_s2 and p_s3 and p_s4:
-                sla_poule_op(p_datum, p_s1, p_s2, p_s3, p_s4)
-                st.success(f"✅ Poule voor {p_datum} succesvol opgeslagen in historie!")
-            else:
-                st.error("Vul apathisch alle velden in (datum + 4 spelers) om de poule op te slaan.")
+                totaal_nieuw = st.number_input("Totaal gespeeld:", min_value=1, value=1)
